@@ -9,6 +9,7 @@
 
 namespace Moosh\Command\Generic\Plugin;
 use Moosh\MooshCommand;
+use PhpParser\Node\Expr\Cast\Object_;
 
 class PluginInstall extends MooshCommand
 {
@@ -20,10 +21,12 @@ class PluginInstall extends MooshCommand
         parent::__construct('install', 'plugin');
 
         $this->addArgument('plugin_name');
+        $this->addArgument('plugin_url');
 
         $this->addOption('r|release:', 'Specify exact version to install e.g. 2019010700');
         $this->addOption('f|force', 'Force installation even if current Moodle version is unsupported.');
         $this->addOption('d|delete', 'If it already exists, automatically delete plugin before installing.');
+        // $this->addOption('u|url', 'Specify plugin URL.');
     }
 
     private function init()
@@ -49,13 +52,26 @@ class PluginInstall extends MooshCommand
         $this->init();
 
         $pluginname     = $this->arguments[0];
+        $plugin_url     = $this->arguments[1];
+
         $pluginversion  = null;
-        if (!empty($this->expandedOptions['release'])) {
-            $pluginversion  = $this->expandedOptions['release'];
+        if (!empty($this->expandedOptions['url'])) {
+            $pluginversion  = $this->expandedOptions['url'];
         }
 
-        $version        = $this->get_plugin_to_install($pluginname, $pluginversion);
-        $downloadurl    = $version->downloadurl;
+        if ($plugin_url) {
+            $downloadurl = $plugin_url;
+            
+            if(!filter_var($downloadurl, FILTER_VALIDATE_URL)){
+                die("The current url is not valid: ".$targetpath." please enter correct URL");
+            }
+            $version = new \stdClass();
+            $version->version="unidentified";
+        }
+        else {
+            $version        = $this->get_plugin_to_install($pluginname, $pluginversion);
+            $downloadurl    = $version->downloadurl;
+        }
 
         $split          = explode('_', $pluginname, 2);
         $type           = $split[0];
